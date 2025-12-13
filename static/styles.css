@@ -3,10 +3,10 @@ html, body {
     height: 100%;
     margin: 0;
     padding: 0;
-    overflow: hidden; /* prevent page scroll */
+    overflow: hidden;
 }
 
-/* Header fixed height */
+/* Header */
 #top-bar {
     background: #214156;
     color: #f5f5f5;
@@ -22,13 +22,13 @@ html, body {
     font-size: 1.5em;
 }
 
-/* Main container fills the rest of the viewport minus header */
+/* Main container */
 #app {
-    height: calc(100vh - 60px);  /* subtract header height */
+    height: calc(100vh - 60px);
     position: relative;
 }
 
-/* ----- FLOATING GUESS BAR ----- */
+/* Guess bar */
 #guess-bar {
     position: absolute;
     top: 20px;
@@ -37,10 +37,11 @@ html, body {
     width: 50%;
     max-width: 600px;
     min-width: 250px;
-    gap: 15px;
 
     display: flex;
     justify-content: center;
+    align-items: center;
+    gap: 15px;
 
     padding: 10px 15px;
     background: rgba(255, 255, 255, 0.85);
@@ -56,16 +57,17 @@ html, body {
     align-items: center;
 }
 
+/* REAL INPUT */
 #guess-input {
     width: 100%;
-    padding: 10px 35px 10px 12px; /* extra right padding for clear button */
+    padding: 10px 35px 10px 12px;
     border: 1px solid #bbb;
     border-radius: 5px;
     font-size: 1rem;
     outline: none;
 }
 
-
+/* CLEAR BUTTON */
 #clear-btn {
     position: absolute;
     right: 15px;
@@ -82,23 +84,198 @@ html, body {
     color: red;
 }
 
+/* PROGRESS TRACKER */
 #progress-tracker {
     font-weight: bold;
     font-size: 1.5rem;
     color: #214156;
     white-space: nowrap;
-    /* align vertically center with input */
     display: flex;
     align-items: center;
-
 }
 
+/* --- PURPLE START BUTTON --- */
+#start-btn {
+    width: 100%;
+    padding: 12px;
+    background: #956AA2;
+    color: white;
+    font-size: 1.2rem;
+    font-weight: bold;
+    border: none;
+    border-radius: 30px; /* pill shape */
+    cursor: pointer;
+    transition: 0.3s ease;
+}
 
+#start-btn:hover {
+    background: #845a90;
+}
 
+/* Hidden utility class */
+.hidden {
+    display: none !important;
+}
 
-/* Map properly fills the whole main area now */
+/* Map */
 #map {
     height: 100%;
     width: 100%;
-    background-color: #e6e6e6; /* fallback */
+    background-color: #e6e6e6;
 }
+
+/* Country Labels */
+.country-label {
+    font-weight: 400;
+    color: black;
+    white-space: nowrap;
+    text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+/* TOP RIGHT CONTROLS */
+#top-right-controls {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    z-index: 999;
+}
+
+#give-up-btn {
+    padding: 6px 12px;
+    background: #c62828;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+#give-up-btn:hover {
+    background: #a71f1f;
+}
+
+#timer {
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #214156;
+}
+
+/* ---------- END GAME MODAL ---------- */
+#endgame-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    pointer-events: none; /* Disable interactions by default */
+}
+
+#endgame-modal {
+    position: relative;
+    background: white;
+    padding: 30px 40px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 420px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    pointer-events: auto; /* Enable interactions */
+}
+
+#endgame-modal h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #214156;
+    font-size: 1.8rem;
+}
+
+#close-endgame {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    background: transparent;
+    border: none;
+    font-size: 1.8rem;
+    line-height: 1;
+    color: #777;
+    cursor: pointer;
+}
+
+#close-endgame:hover {
+    color: #000;
+}
+
+
+/* ---------- END GAME STATS DASHBOARD ---------- */
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 25px;
+}
+
+.stat-card {
+    background: #f4f7fa;
+    border-radius: 12px;
+    padding: 16px 10px;
+    text-align: center;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #6b7c8f;
+    margin-bottom: 6px;
+}
+
+.stat-value {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #214156;
+    line-height: 1;
+}
+
+
+/* --- PURPLE START BUTTON --- */
+#play-again-btn {
+    width: 100%;
+    padding: 12px;
+    background: #956AA2;
+    color: white;
+    font-size: 1.2rem;
+    font-weight: bold;
+    border: none;
+    border-radius: 30px; /* pill shape */
+    cursor: pointer;
+    transition: 0.3s ease;
+}
+
+#play-again-btn:hover {
+    background: #845a90;
+}
+
+#play-again-inline {
+    width: 100%;
+    padding: 12px;
+    background: #956AA2;
+    color: white;
+    font-size: 1.2rem;
+    font-weight: bold;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: 0.3s ease;
+}
+
+#play-again-inline:hover {
+    background: #845a90;
+}
+
+
