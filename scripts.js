@@ -1,9 +1,17 @@
+/* =========================================================
+   GLOBAL STATE
+========================================================= */
+
 let map;
+let extentMap;
+let extentRect;
+
 let countryData = {};
 let countriesByCanonical = {};
 let countryLayers = {};
 let revealedCountries = new Set();
 let finalGuessedCount = null;
+
 let totalCountries = 0;
 let input;
 let dataLoaded = false;
@@ -11,11 +19,10 @@ let dataLoaded = false;
 let timerInterval = null;
 let secondsElapsed = 0;
 
-/* ---------- CONTINENTS ---------- */
-/**
- * These must match EXACTLY what your GeoJSON "continent" field contains.
- * If your geojson uses different strings (e.g., "NA", "SA"), change them here.
- */
+/* =========================================================
+   CONTINENTS
+========================================================= */
+
 const CONTINENTS = [
   "North America",
   "South America",
@@ -34,10 +41,13 @@ const CONTINENT_ID = {
   "Oceania": "oc"
 };
 
-let continentTotals = {};   // { "Europe": 44, ... }
-let continentGuessed = {};  // { "Europe": 10, ... }
+let continentTotals = {};
+let continentGuessed = {};
 
-/* ---------- HELPERS ---------- */
+/* =========================================================
+   HELPERS
+========================================================= */
+
 function formatTime(sec) {
   const m = Math.floor(sec / 60).toString().padStart(2, "0");
   const s = (sec % 60).toString().padStart(2, "0");
@@ -73,11 +83,8 @@ function updateProgress() {
 
 function updateContinentBox(continent) {
   const id = CONTINENT_ID[continent];
-  if (!id) return;
-
   const el = document.getElementById(`${id}-progress`);
   if (!el) return;
-
   el.textContent = `${continentGuessed[continent] || 0} / ${continentTotals[continent] || 0}`;
 }
 
@@ -89,7 +96,19 @@ function continentOfFeature(feature) {
   return feature?.properties?.continent || "Unknown";
 }
 
-/* ---------- END GAME ---------- */
+/* =========================================================
+   EXTENT MAP SYNC
+========================================================= */
+
+function updateExtentRectangle() {
+  if (!extentRect) return;
+  extentRect.setBounds(map.getBounds());
+}
+
+/* =========================================================
+   END GAME
+========================================================= */
+
 function endGame() {
   clearInterval(timerInterval);
   input.disabled = true;
@@ -105,7 +124,6 @@ function endGame() {
   document.getElementById("final-accuracy").textContent =
     Math.round((guessed / totalCountries) * 100);
 
-  // Build continent stats inside the modal
   const continentStats = document.getElementById("continent-stats");
   continentStats.innerHTML = "";
 
@@ -120,33 +138,55 @@ function endGame() {
   });
 
   document.getElementById("endgame-overlay").classList.remove("hidden");
-
-  // Hide timer + give up until a new game starts (your requirement)
   document.getElementById("top-right-controls").classList.add("hidden");
-
-  document.getElementById("continental-panel").classList.add("hidden");
+  document.getElementById("continent-panel").classList.add("hidden");
 }
 
-/* ---------- INIT ---------- */
+/* =========================================================
+   INIT
+========================================================= */
+
 document.addEventListener("DOMContentLoaded", () => {
 
+  /* ---------- MAIN MAP ---------- */
   map = L.map("map", {
     minZoom: 2.6,
     maxZoom: 10,
     zoomSnap: 0.1,
     zoomDelta: 0.1,
-    worldCopyJump: true,
-    // maxBounds: [[-80, -180], [90, 180]]
+    worldCopyJump: true
   }).setView([20, 0], 2.6);
 
   L.tileLayer(
     "https://cartodb-basemaps-a.global.ssl.fastly.net/light_nolabels/{z}/{x}/{y}.png",
-    {
-    attribution: "&copy; CartoDB",
-    noWrap: false
-     }
+    { attribution: "&copy; CartoDB" }
   ).addTo(map);
 
+  /* ---------- EXTENT MAP ---------- */
+  extentMap = L.map("extent-map", {
+    zoomControl: false,
+    attributionControl: false,
+    dragging: false,
+    scrollWheelZoom: false,
+    doubleClickZoom: false,
+    boxZoom: false,
+    keyboard: false,
+    tap: false
+  }).setView([20, 0], 1.5);
+
+  L.tileLayer(
+    "https://cartodb-basemaps-a.global.ssl.fastly.net/light_nolabels/{z}/{x}/{y}.png"
+  ).addTo(extentMap);
+
+  extentRect = L.rectangle(map.getBounds(), {
+    color: "#956AA2",
+    weight: 2,
+    fillOpacity: 0.15
+  }).addTo(extentMap);
+
+  map.on("moveend zoomend", updateExtentRectangle);
+
+  /* ---------- UI ELEMENTS ---------- */
   input = document.getElementById("guess-input");
   const startBtn = document.getElementById("start-btn");
   const clearBtn = document.getElementById("clear-btn");
@@ -155,57 +195,51 @@ document.addEventListener("DOMContentLoaded", () => {
   const playAgainModal = document.getElementById("play-again-btn");
 
   input.disabled = true;
+  document.getElementById("extent-map-container").classList.add("hidden");
 
-  // init continent counters
   CONTINENTS.forEach(c => {
     continentTotals[c] = 0;
     continentGuessed[c] = 0;
   });
 
   /* ---------- LOAD DATA ---------- */
-fetch("countries_updated.geojson")
-  .then(r => {
-    if (!r.ok) {
-      throw new Error(`Failed to load GeoJSON: ${r.status}`);
-    }
-    return r.json();
-  })
-  .then(data => {
-    data.features.forEach(feature => {
-      const name = feature.properties.country_name;
-      if (!name) return;
+  fetch("countries_updated.geojson")
+    .then(r => {
+      if (!r.ok) throw new Error(`GeoJSON load failed: ${r.status}`);
+      return r.json();
+    })
+    .then(data => {
+      data.features.forEach(feature => {
+        const name = feature.properties.country_name;
+        if (!name) return;
 
-      const canonical = normalizeName(name);
-      countriesByCanonical[canonical] = feature;
-      countryData[canonical] = feature;
+        const canonical = normalizeName(name);
+        countriesByCanonical[canonical] = feature;
+        countryData[canonical] = feature;
 
-      if (feature.properties.aliases) {
-        feature.properties.aliases
-          .split(",")
-          .map(normalizeName)
-          .forEach(a => (countryData[a] = feature));
-      }
+        if (feature.properties.aliases) {
+          feature.properties.aliases
+            .split(",")
+            .map(normalizeName)
+            .forEach(a => (countryData[a] = feature));
+        }
 
-      const cont = continentOfFeature(feature);
-      if (continentTotals[cont] === undefined) continentTotals[cont] = 0;
-      continentTotals[cont]++;
+        const cont = continentOfFeature(feature);
+        continentTotals[cont]++;
+      });
+
+      totalCountries = Object.keys(countriesByCanonical).length;
+      dataLoaded = true;
+      updateProgress();
+      updateAllContinentBoxes();
     });
-
-    totalCountries = Object.keys(countriesByCanonical).length;
-    dataLoaded = true;
-
-    updateProgress();
-    updateAllContinentBoxes();
-  })
-  .catch(err => {
-    console.error(err);
-    alert("Failed to load map data. Check console.");
-  });
-
 
   /* ---------- START GAME ---------- */
   startBtn.addEventListener("click", () => {
-    // if (!dataLoaded) return alert("Loading map data…");
+    if (!dataLoaded) {
+      alert("Map is still loading, please wait…");
+      return;
+    }
 
     startBtn.classList.add("hidden");
     playAgainInline.classList.add("hidden");
@@ -217,6 +251,16 @@ fetch("countries_updated.geojson")
 
     document.getElementById("top-right-controls").classList.remove("hidden");
     document.getElementById("continent-panel").classList.remove("hidden");
+    document.getElementById("extent-map-container").classList.remove("hidden");
+
+    setTimeout(() => {
+      extentMap.invalidateSize();
+      extentMap.fitWorld({ animate: false });
+      updateExtentRectangle();
+    }, 0);
+
+
+    updateExtentRectangle();
 
     secondsElapsed = 0;
     document.getElementById("timer").textContent = "00:00";
@@ -239,10 +283,9 @@ fetch("countries_updated.geojson")
 
     const layer = createCountryLayer(feature, "#1E90FF").addTo(map);
 
-    const { label_x, label_y } = feature.properties;
     const center =
-      Number.isFinite(label_x) && Number.isFinite(label_y)
-        ? [label_y, label_x]
+      Number.isFinite(feature.properties.label_x)
+        ? [feature.properties.label_y, feature.properties.label_x]
         : layer.getBounds().getCenter();
 
     const label = L.marker(center, {
@@ -252,26 +295,18 @@ fetch("countries_updated.geojson")
       })
     }).addTo(map);
 
-    // font size based on zoom
     label.getElement().style.fontSize =
       `${getLabelFontSize(feature, map.getZoom())}px`;
 
-    countryLayers[canonical] = { layer, label, feature };
+    countryLayers[canonical] = { layer, label };
     revealedCountries.add(canonical);
 
-    // continent guessed + UI update
     const cont = continentOfFeature(feature);
-    if (continentGuessed[cont] === undefined) continentGuessed[cont] = 0;
     continentGuessed[cont]++;
     updateContinentBox(cont);
-
     updateProgress();
 
-    map.fitBounds(layer.getBounds(), {
-      padding: [20, 20],
-      maxZoom: 5,
-      animate: true
-    });
+    map.fitBounds(layer.getBounds(), { padding: [20, 20], maxZoom: 5 });
 
     if (revealedCountries.size === totalCountries)
       setTimeout(endGame, 1000);
@@ -285,70 +320,64 @@ fetch("countries_updated.geojson")
     input.focus();
   });
 
-  /* ---------- GIVE UP ---------- */
-  giveUpBtn.addEventListener("click", () => {
-    // freeze guessed count for modal
-    finalGuessedCount = revealedCountries.size;
 
-    // remove currently drawn layers
-    Object.values(countryLayers).forEach(({ layer, label }) => {
-      map.removeLayer(layer);
-      map.removeLayer(label);
+    /* ---------- GIVE UP ---------- */
+    giveUpBtn.addEventListener("click", () => {
+      finalGuessedCount = revealedCountries.size;
+
+      // Remove all current layers + labels
+      Object.values(countryLayers).forEach(({ layer, label }) => {
+        map.removeLayer(layer);
+        map.removeLayer(label);
+      });
+      countryLayers = {};
+
+      // Re-draw ALL countries with labels
+      Object.entries(countriesByCanonical).forEach(([canonical, feature]) => {
+        const color = revealedCountries.has(canonical)
+          ? "#1E90FF"   // guessed
+          : "#c62828";  // missed
+
+        const layer = createCountryLayer(feature, color).addTo(map);
+
+        const center =
+          Number.isFinite(feature.properties.label_x)
+            ? [feature.properties.label_y, feature.properties.label_x]
+            : layer.getBounds().getCenter();
+
+        const label = L.marker(center, {
+          icon: L.divIcon({
+            className: "country-label",
+            html: feature.properties.country_name
+          })
+        }).addTo(map);
+
+        label.getElement().style.fontSize =
+          `${getLabelFontSize(feature, map.getZoom())}px`;
+
+        countryLayers[canonical] = { layer, label };
+      });
+
+      updateProgress();
+      updateAllContinentBoxes();
+
+      // Zoom back to global view
+      map.setView([20, 0], 2.6, { animate: true, duration: 1.2 });
+
+      endGame();
     });
-    countryLayers = {};
 
-    // draw ALL countries: guessed = blue, missed = red
-    Object.entries(countriesByCanonical).forEach(([canonical, feature]) => {
-      const color = revealedCountries.has(canonical)
-        ? "#1E90FF"
-        : "#c62828";
 
-      const layer = createCountryLayer(feature, color).addTo(map);
-
-      const { label_x, label_y } = feature.properties;
-      const center =
-        Number.isFinite(label_x) && Number.isFinite(label_y)
-          ? [label_y, label_x]
-          : layer.getBounds().getCenter();
-
-      const label = L.marker(center, {
-        icon: L.divIcon({
-          className: "country-label",
-          html: feature.properties.country_name
-        })
-      }).addTo(map);
-
-      label.getElement().style.fontSize =
-        `${getLabelFontSize(feature, map.getZoom())}px`;
-
-      countryLayers[canonical] = { layer, label, feature };
-    });
-
-    updateProgress();
-    updateAllContinentBoxes();
-
-    // zoom out to global view
-    map.setView([20, 0], 2.6, { animate: true, duration: 1.5 });
-
-    const continentCard = document.getElementById("continent-panel");
-    if (continentCard) continentCard.classList.add("hidden");
-
-    endGame();
-  });
-
-  /* ---------- CLOSE MODAL → EXPLORE MODE (SHOW PLAY AGAIN INLINE) ---------- */
+  /* ---------- MODAL CLOSE ---------- */
   document.getElementById("close-endgame").addEventListener("click", () => {
     document.getElementById("endgame-overlay").classList.add("hidden");
-
-    // hide input + clear, show play again inline where input was
     input.classList.add("hidden");
     clearBtn.classList.add("hidden");
     playAgainInline.classList.remove("hidden");
   });
 
-  /* ---------- PLAY AGAIN (INLINE) ---------- */
-  function resetGameToStartButton() {
-    // remove all drawn layers (including give-up reveal)
+  /* ---------- PLAY AGAIN ---------- */
+  function resetGame() {
     Object.values(countryLayers).forEach(({ layer, label }) => {
       map.removeLayer(layer);
       map.removeLayer(label);
@@ -358,41 +387,33 @@ fetch("countries_updated.geojson")
     revealedCountries.clear();
     finalGuessedCount = null;
 
-    // reset continent guessed
-    CONTINENTS.forEach(c => { continentGuessed[c] = 0; });
+    CONTINENTS.forEach(c => (continentGuessed[c] = 0));
 
     updateProgress();
     updateAllContinentBoxes();
 
-    // UI back to "Begin Game"
     playAgainInline.classList.add("hidden");
     startBtn.classList.remove("hidden");
 
-
-    // also hide input/clear, since we’re back to pre-game state
     input.value = "";
     input.disabled = true;
     input.classList.add("hidden");
     clearBtn.classList.add("hidden");
 
-    // hide top-right controls until game starts again
     document.getElementById("top-right-controls").classList.add("hidden");
+    document.getElementById("extent-map-container").classList.add("hidden");
 
-    // zoom to world
-    map.setView([20, 0], 2.6, { animate: true, duration: 1.2 });
+    map.setView([20, 0], 2.6);
 
-    // reset timer display
     clearInterval(timerInterval);
     secondsElapsed = 0;
     document.getElementById("timer").textContent = "00:00";
   }
 
-  playAgainInline.addEventListener("click", resetGameToStartButton);
-
-  /* ---------- PLAY AGAIN (MODAL BUTTON) ---------- */
+  playAgainInline.addEventListener("click", resetGame);
   playAgainModal.addEventListener("click", () => {
     document.getElementById("endgame-overlay").classList.add("hidden");
-    resetGameToStartButton();
+    resetGame();
   });
 
 });

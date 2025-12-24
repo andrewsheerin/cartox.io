@@ -164,12 +164,34 @@ html, body {
     color: #214156;
 }
 
+/* ---------- EXTENT MAP ---------- */
+#extent-map-container {
+    display: flex;
+    justify-content: center;
+}
+
+#extent-map {
+  min-width: 322px;
+  height: 250px;
+  border-radius: 8px;
+  border: 2px solid #214156;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+  pointer-events: none; /* Disable interactions */
+  /* reduce opacity to indicate it's secondary */
+  opacity: 0.9;
+}
+
+
+
 /* ---------- CONTINENT PANEL (RIGHT SIDE) ---------- */
 #continent-panel {
     position: absolute;
     top: 90px;          /* below guess bar area */
     right: 20px;
     z-index: 999;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
 .continent-grid {
