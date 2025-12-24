@@ -163,37 +163,45 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /* ---------- LOAD DATA ---------- */
-  fetch("countries_updated.geojson")
-    .then(r => r.json())
-    .then(data => {
-      data.features.forEach(feature => {
-        const name = feature.properties.country_name;
-        if (!name) return;
+fetch("countries_updated.geojson")
+  .then(r => {
+    if (!r.ok) {
+      throw new Error(`Failed to load GeoJSON: ${r.status}`);
+    }
+    return r.json();
+  })
+  .then(data => {
+    data.features.forEach(feature => {
+      const name = feature.properties.country_name;
+      if (!name) return;
 
-        const canonical = normalizeName(name);
-        countriesByCanonical[canonical] = feature;
-        countryData[canonical] = feature;
+      const canonical = normalizeName(name);
+      countriesByCanonical[canonical] = feature;
+      countryData[canonical] = feature;
 
-        // aliases map to same feature (guessing)
-        if (feature.properties.aliases) {
-          feature.properties.aliases
-            .split(",")
-            .map(normalizeName)
-            .forEach(a => (countryData[a] = feature));
-        }
+      if (feature.properties.aliases) {
+        feature.properties.aliases
+          .split(",")
+          .map(normalizeName)
+          .forEach(a => (countryData[a] = feature));
+      }
 
-        // continent totals
-        const cont = continentOfFeature(feature);
-        if (continentTotals[cont] === undefined) continentTotals[cont] = 0;
-        continentTotals[cont]++;
-      });
-
-      totalCountries = Object.keys(countriesByCanonical).length;
-      dataLoaded = true;
-
-      updateProgress();
-      updateAllContinentBoxes();
+      const cont = continentOfFeature(feature);
+      if (continentTotals[cont] === undefined) continentTotals[cont] = 0;
+      continentTotals[cont]++;
     });
+
+    totalCountries = Object.keys(countriesByCanonical).length;
+    dataLoaded = true;
+
+    updateProgress();
+    updateAllContinentBoxes();
+  })
+  .catch(err => {
+    console.error(err);
+    alert("Failed to load map data. Check console.");
+  });
+
 
   /* ---------- START GAME ---------- */
   startBtn.addEventListener("click", () => {
