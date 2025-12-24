@@ -148,8 +148,9 @@ html, body {
     background: #c62828;
     color: white;
     border: none;
-    border-radius: 5px;
+    border-radius: 15px;
     cursor: pointer;
+    font-size: 1.2rem;
     font-weight: bold;
 }
 
@@ -158,8 +159,47 @@ html, body {
 }
 
 #timer {
-    font-size: 1.4rem;
+    font-size: 1.5rem;
     font-weight: bold;
+    color: #214156;
+}
+
+/* ---------- CONTINENT PANEL (RIGHT SIDE) ---------- */
+#continent-panel {
+    position: absolute;
+    top: 90px;          /* below guess bar area */
+    right: 20px;
+    z-index: 999;
+}
+
+.continent-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* single column */
+    gap: 10px;
+}
+
+.continent-card {
+    background: rgba(255, 255, 255, 0.88);
+    border-radius: 10px;
+    padding: 10px 12px;
+    min-width: 130px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+    text-align: center;
+}
+
+.continent-card .continent-name {
+    display: block;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #214156;
+    margin-bottom: 4px;
+    letter-spacing: 0.02em;
+}
+
+.continent-card .continent-progress {
+    display: block;
+    font-size: 1.15rem;
+    font-weight: 400;
     color: #214156;
 }
 
@@ -181,7 +221,7 @@ html, body {
     padding: 30px 40px;
     border-radius: 12px;
     width: 90%;
-    max-width: 420px;
+    max-width: 460px;
     text-align: center;
     box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     pointer-events: auto; /* Enable interactions */
@@ -197,7 +237,7 @@ html, body {
 #close-endgame {
     position: absolute;
     top: 12px;
-    right: 14px;
+    left: 14px; /* you asked for upper-left of the modal */
     background: transparent;
     border: none;
     font-size: 1.8rem;
@@ -210,13 +250,12 @@ html, body {
     color: #000;
 }
 
-
 /* ---------- END GAME STATS DASHBOARD ---------- */
 .stats-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px;
-    margin-bottom: 25px;
+    margin-bottom: 18px;
 }
 
 .stat-card {
@@ -242,8 +281,16 @@ html, body {
     line-height: 1;
 }
 
+/* Continent stats grid inside modal */
+#continent-stats {
+    margin-top: 8px;
+}
 
-/* --- PURPLE START BUTTON --- */
+#continent-stats .stat-value {
+    font-size: 1.4rem;
+}
+
+/* --- PURPLE PLAY AGAIN BUTTONS --- */
 #play-again-btn {
     width: 100%;
     padding: 12px;
@@ -252,7 +299,7 @@ html, body {
     font-size: 1.2rem;
     font-weight: bold;
     border: none;
-    border-radius: 30px; /* pill shape */
+    border-radius: 30px;
     cursor: pointer;
     transition: 0.3s ease;
 }
@@ -277,5 +324,3 @@ html, body {
 #play-again-inline:hover {
     background: #845a90;
 }
-
-

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mapping Games</title>
+
+  <link rel="stylesheet" href="styles.css" />
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+</head>
+
+<body>
+  <header id="top-bar">
+    <h1>Mapping Games</h1>
+  </header>
+
+  <main id="app">
+
+    <!-- TOP RIGHT -->
+    <div id="top-right-controls" class="hidden">
+      <button id="give-up-btn">Give Up</button>
+      <div id="timer">00:00</div>
+    </div>
+
+    <!-- GUESS BAR -->
+    <div id="guess-bar">
+      <div id="input-wrapper">
+        <button id="start-btn">Begin Game</button>
+        <input id="guess-input" class="hidden" type="text" placeholder="Guess a country..." />
+        <button id="clear-btn" class="hidden">Clear</button>
+        <button id="play-again-inline" class="hidden">Play Again</button>
+      </div>
+      <div id="progress-tracker">0 / 0</div>
+    </div>
+
+    <!-- CONTINENT PANEL -->
+    <div id="continent-panel" class="hidden">
+      <div class="continent-grid">
+        <div class="continent-card"><span class="continent-name">North America</span>
+         <div><span id="na-progress" class="continent-progress">0 / 0</span></div>
+        </div>
+        <div class="continent-card"><span class="continent-name">South America</span>
+          <div><span id="sa-progress" class="continent-progress">0 / 0</span></div>
+        </div>
+        <div class="continent-card"><span class="continent-name">Europe</span>
+          <div><span id="eu-progress" class="continent-progress">0 / 0</span></div>
+        </div>
+        <div class="continent-card"><span class="continent-name">Africa</span>
+          <div><span id="af-progress" class="continent-progress">0 / 0</span></div>
+        </div>
+        <div class="continent-card"><span class="continent-name">Asia</span>
+            <div><span id="as-progress" class="continent-progress">0 / 0</span></div>
+        </div>
+        <div class="continent-card"><span class="continent-name">Oceania</span>
+          <div><span id="oc-progress" class="continent-progress">0 / 0</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="map"></div>
+
+  </main>
+
+  <!-- ENDGAME MODAL -->
+  <div id="endgame-overlay" class="hidden">
+    <div id="endgame-modal">
+      <button id="close-endgame">&times;</button>
+      <h2>Game Complete</h2>
+
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Time</div><div class="stat-value" id="final-time"></div></div>
+        <div class="stat-card"><div class="stat-label">Guessed</div><div class="stat-value" id="final-guessed"></div></div>
+        <div class="stat-card"><div class="stat-label">Missed</div><div class="stat-value" id="final-missed"></div></div>
+        <div class="stat-card"><div class="stat-label">Accuracy</div><div class="stat-value"><span id="final-accuracy"></span>%</div></div>
+      </div>
+
+      <div class="stats-grid" id="continent-stats"></div>
+
+      <button id="play-again-btn">Play Again</button>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="scripts.js"></script>
+</body>
+</html>

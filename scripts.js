@@ -11,6 +11,32 @@ let dataLoaded = false;
 let timerInterval = null;
 let secondsElapsed = 0;
 
+/* ---------- CONTINENTS ---------- */
+/**
+ * These must match EXACTLY what your GeoJSON "continent" field contains.
+ * If your geojson uses different strings (e.g., "NA", "SA"), change them here.
+ */
+const CONTINENTS = [
+  "North America",
+  "South America",
+  "Asia",
+  "Europe",
+  "Africa",
+  "Oceania"
+];
+
+const CONTINENT_ID = {
+  "North America": "na",
+  "South America": "sa",
+  "Asia": "as",
+  "Europe": "eu",
+  "Africa": "af",
+  "Oceania": "oc"
+};
+
+let continentTotals = {};   // { "Europe": 44, ... }
+let continentGuessed = {};  // { "Europe": 10, ... }
+
 /* ---------- HELPERS ---------- */
 function formatTime(sec) {
   const m = Math.floor(sec / 60).toString().padStart(2, "0");
@@ -45,6 +71,24 @@ function updateProgress() {
     `${revealedCountries.size} / ${totalCountries}`;
 }
 
+function updateContinentBox(continent) {
+  const id = CONTINENT_ID[continent];
+  if (!id) return;
+
+  const el = document.getElementById(`${id}-progress`);
+  if (!el) return;
+
+  el.textContent = `${continentGuessed[continent] || 0} / ${continentTotals[continent] || 0}`;
+}
+
+function updateAllContinentBoxes() {
+  CONTINENTS.forEach(updateContinentBox);
+}
+
+function continentOfFeature(feature) {
+  return feature?.properties?.continent || "Unknown";
+}
+
 /* ---------- END GAME ---------- */
 function endGame() {
   clearInterval(timerInterval);
@@ -55,13 +99,32 @@ function endGame() {
       ? finalGuessedCount
       : revealedCountries.size;
 
-  document.getElementById("final-time").textContent =formatTime(secondsElapsed);
+  document.getElementById("final-time").textContent = formatTime(secondsElapsed);
   document.getElementById("final-guessed").textContent = guessed;
-  document.getElementById("final-missed").textContent =totalCountries - guessed;
-  document.getElementById("final-accuracy").textContent =Math.round((guessed / totalCountries) * 100);
+  document.getElementById("final-missed").textContent = totalCountries - guessed;
+  document.getElementById("final-accuracy").textContent =
+    Math.round((guessed / totalCountries) * 100);
+
+  // Build continent stats inside the modal
+  const continentStats = document.getElementById("continent-stats");
+  continentStats.innerHTML = "";
+
+  CONTINENTS.forEach(c => {
+    const card = document.createElement("div");
+    card.className = "stat-card";
+    card.innerHTML = `
+      <div class="stat-label">${c}</div>
+      <div class="stat-value">${continentGuessed[c] || 0} / ${continentTotals[c] || 0}</div>
+    `;
+    continentStats.appendChild(card);
+  });
 
   document.getElementById("endgame-overlay").classList.remove("hidden");
+
+  // Hide timer + give up until a new game starts (your requirement)
   document.getElementById("top-right-controls").classList.add("hidden");
+
+  document.getElementById("continental-panel").classList.add("hidden");
 }
 
 /* ---------- INIT ---------- */
@@ -72,8 +135,8 @@ document.addEventListener("DOMContentLoaded", () => {
     maxZoom: 10,
     zoomSnap: 0.1,
     zoomDelta: 0.1,
-    worldCopyJump: false,
-    maxBounds: [[-90, -180], [90, 180]]
+    worldCopyJump: true,
+    // maxBounds: [[-80, -180], [90, 180]]
   }).setView([20, 0], 2.6);
 
   L.tileLayer(
@@ -81,7 +144,7 @@ document.addEventListener("DOMContentLoaded", () => {
     {
     attribution: "&copy; CartoDB",
     noWrap: false
-    }
+     }
   ).addTo(map);
 
   input = document.getElementById("guess-input");
@@ -89,11 +152,18 @@ document.addEventListener("DOMContentLoaded", () => {
   const clearBtn = document.getElementById("clear-btn");
   const giveUpBtn = document.getElementById("give-up-btn");
   const playAgainInline = document.getElementById("play-again-inline");
+  const playAgainModal = document.getElementById("play-again-btn");
 
   input.disabled = true;
 
+  // init continent counters
+  CONTINENTS.forEach(c => {
+    continentTotals[c] = 0;
+    continentGuessed[c] = 0;
+  });
+
   /* ---------- LOAD DATA ---------- */
-  fetch("/static/countries_updated.geojson")
+  fetch("countries_updated.geojson")
     .then(r => r.json())
     .then(data => {
       data.features.forEach(feature => {
@@ -104,17 +174,25 @@ document.addEventListener("DOMContentLoaded", () => {
         countriesByCanonical[canonical] = feature;
         countryData[canonical] = feature;
 
+        // aliases map to same feature (guessing)
         if (feature.properties.aliases) {
           feature.properties.aliases
             .split(",")
             .map(normalizeName)
             .forEach(a => (countryData[a] = feature));
         }
+
+        // continent totals
+        const cont = continentOfFeature(feature);
+        if (continentTotals[cont] === undefined) continentTotals[cont] = 0;
+        continentTotals[cont]++;
       });
 
       totalCountries = Object.keys(countriesByCanonical).length;
       dataLoaded = true;
+
       updateProgress();
+      updateAllContinentBoxes();
     });
 
   /* ---------- START GAME ---------- */
@@ -123,16 +201,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
     startBtn.classList.add("hidden");
     playAgainInline.classList.add("hidden");
+
     input.classList.remove("hidden");
     clearBtn.classList.remove("hidden");
     input.disabled = false;
     input.focus();
 
     document.getElementById("top-right-controls").classList.remove("hidden");
+    document.getElementById("continent-panel").classList.remove("hidden");
 
     secondsElapsed = 0;
     document.getElementById("timer").textContent = "00:00";
 
+    clearInterval(timerInterval);
     timerInterval = setInterval(() => {
       secondsElapsed++;
       document.getElementById("timer").textContent = formatTime(secondsElapsed);
@@ -163,11 +244,19 @@ document.addEventListener("DOMContentLoaded", () => {
       })
     }).addTo(map);
 
+    // font size based on zoom
     label.getElement().style.fontSize =
       `${getLabelFontSize(feature, map.getZoom())}px`;
 
     countryLayers[canonical] = { layer, label, feature };
     revealedCountries.add(canonical);
+
+    // continent guessed + UI update
+    const cont = continentOfFeature(feature);
+    if (continentGuessed[cont] === undefined) continentGuessed[cont] = 0;
+    continentGuessed[cont]++;
+    updateContinentBox(cont);
+
     updateProgress();
 
     map.fitBounds(layer.getBounds(), {
@@ -190,20 +279,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /* ---------- GIVE UP ---------- */
   giveUpBtn.addEventListener("click", () => {
+    // freeze guessed count for modal
     finalGuessedCount = revealedCountries.size;
 
+    // remove currently drawn layers
     Object.values(countryLayers).forEach(({ layer, label }) => {
       map.removeLayer(layer);
       map.removeLayer(label);
     });
     countryLayers = {};
 
+    // draw ALL countries: guessed = blue, missed = red
     Object.entries(countriesByCanonical).forEach(([canonical, feature]) => {
       const color = revealedCountries.has(canonical)
         ? "#1E90FF"
         : "#c62828";
 
       const layer = createCountryLayer(feature, color).addTo(map);
+
       const { label_x, label_y } = feature.properties;
       const center =
         Number.isFinite(label_x) && Number.isFinite(label_y)
@@ -223,23 +316,31 @@ document.addEventListener("DOMContentLoaded", () => {
       countryLayers[canonical] = { layer, label, feature };
     });
 
-    revealedCountries = new Set(Object.keys(countryLayers));
     updateProgress();
-    map.setView([20, 0], 2.6, { animate: true, duration: 3.0 });
+    updateAllContinentBoxes();
+
+    // zoom out to global view
+    map.setView([20, 0], 2.6, { animate: true, duration: 1.5 });
+
+    const continentCard = document.getElementById("continent-panel");
+    if (continentCard) continentCard.classList.add("hidden");
+
     endGame();
   });
 
-  /* ---------- CLOSE MODAL → SHOW PLAY AGAIN INLINE ---------- */
+  /* ---------- CLOSE MODAL → EXPLORE MODE (SHOW PLAY AGAIN INLINE) ---------- */
   document.getElementById("close-endgame").addEventListener("click", () => {
     document.getElementById("endgame-overlay").classList.add("hidden");
 
+    // hide input + clear, show play again inline where input was
     input.classList.add("hidden");
     clearBtn.classList.add("hidden");
     playAgainInline.classList.remove("hidden");
   });
 
-  /* ---------- PLAY AGAIN INLINE ---------- */
-  playAgainInline.addEventListener("click", () => {
+  /* ---------- PLAY AGAIN (INLINE) ---------- */
+  function resetGameToStartButton() {
+    // remove all drawn layers (including give-up reveal)
     Object.values(countryLayers).forEach(({ layer, label }) => {
       map.removeLayer(layer);
       map.removeLayer(label);
@@ -249,12 +350,41 @@ document.addEventListener("DOMContentLoaded", () => {
     revealedCountries.clear();
     finalGuessedCount = null;
 
-    updateProgress();
+    // reset continent guessed
+    CONTINENTS.forEach(c => { continentGuessed[c] = 0; });
 
+    updateProgress();
+    updateAllContinentBoxes();
+
+    // UI back to "Begin Game"
     playAgainInline.classList.add("hidden");
     startBtn.classList.remove("hidden");
 
-    map.setView([20, 0], 2.6, { animate: true, duration: 1.5 });
+
+    // also hide input/clear, since we’re back to pre-game state
+    input.value = "";
+    input.disabled = true;
+    input.classList.add("hidden");
+    clearBtn.classList.add("hidden");
+
+    // hide top-right controls until game starts again
+    document.getElementById("top-right-controls").classList.add("hidden");
+
+    // zoom to world
+    map.setView([20, 0], 2.6, { animate: true, duration: 1.2 });
+
+    // reset timer display
+    clearInterval(timerInterval);
+    secondsElapsed = 0;
+    document.getElementById("timer").textContent = "00:00";
+  }
+
+  playAgainInline.addEventListener("click", resetGameToStartButton);
+
+  /* ---------- PLAY AGAIN (MODAL BUTTON) ---------- */
+  playAgainModal.addEventListener("click", () => {
+    document.getElementById("endgame-overlay").classList.add("hidden");
+    resetGameToStartButton();
   });
 
 });
