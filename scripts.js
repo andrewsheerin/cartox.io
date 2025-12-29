@@ -203,7 +203,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /* ---------- LOAD DATA ---------- */
-  fetch("countries_updated.geojson")
+  fetch("countries_final.geojson")
     .then(r => {
       if (!r.ok) throw new Error(`GeoJSON load failed: ${r.status}`);
       return r.json();
