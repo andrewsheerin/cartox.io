@@ -235,17 +235,17 @@ html, body {
 
 @media (max-width: 700px) {
   #top-right-controls {
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
     justify-content: flex-start;
 
-    top: auto;
-    right: auto;
-    bottom: calc(12px + env(safe-area-inset-bottom));
-    left: calc(12px + env(safe-area-inset-left));
+    top: 80px;
+    right: 200px;
+    bottom: auto;
+    left: auto;
 
     transform: none;
-    gap: 5px;
+    gap: 15px;
   }
 
   #timer {
@@ -472,10 +472,11 @@ html, body {
 @media (max-width: 700px) {
   #toggle-continent-panel {
     display: block;
-    right: calc(20px + env(safe-area-inset-right));
+    right: 40px;
   }
 
   #continent-panel {
+    right: 40px;
     top: clamp(130px, 14vh, 180px);
     max-height: calc(100vh - clamp(220px, 18vh, 320px));
     }
