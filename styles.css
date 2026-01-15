@@ -15,6 +15,10 @@ html, body {
   display: none !important;
 }
 
+.leaflet-control-attribution {
+  display: none !important;
+}
+
 /* =========================================================
    HEADER
 ========================================================= */
@@ -140,6 +144,49 @@ html, body {
 }
 
 /* =========================================================
+   AUTOCOMPLETE DROPDOWN
+========================================================= */
+
+/* Autocomplete dropdown container */
+.autocomplete {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(0,0,0,0.18);
+  border-radius: 8px;
+  box-shadow: 0 10px 22px rgba(0,0,0,0.18);
+  z-index: 2000;
+}
+
+/* Row */
+.autocomplete-item {
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: #214156;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+.autocomplete-item:last-child {
+  border-bottom: none;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.active {
+  background: rgba(149, 106, 162, 0.12);
+}
+
+/* Optional: style guessed items in suggestions */
+.autocomplete-item.guessed {
+  opacity: 0.45;
+}
+
+
+/* =========================================================
    START / PLAY AGAIN BUTTONS (RESTORED + COMPLETE)
 ========================================================= */
 
@@ -208,12 +255,20 @@ html, body {
   z-index: 999;
 }
 
+
 #give-up-btn {
   padding: 6px 12px;
+  background: #214156;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 550;
+
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
   background: #c62828;
   color: white;
   border: none;
-  border-radius: 15px;
   cursor: pointer;
   font-size: clamp(0.9rem, 1.6vw, 1.2rem);  /* clamp(min, preferred, max) */
   font-weight: 600;
@@ -229,30 +284,74 @@ html, body {
   color: #214156;
 }
 
-/* =========================================================
-   MOBILE: MOVE TIMER + GIVE UP TO BOTTOM
-========================================================= */
-
 @media (max-width: 700px) {
-  #top-right-controls {
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-start;
-
-    top: 80px;
-    right: 200px;
-    bottom: auto;
-    left: auto;
-
+  /* Give the guess bar full-width breathing room */
+  #guess-bar {
+    top: 12px;
+    left: 50px;
+    right: 50px;
     transform: none;
-    gap: 15px;
+    width: auto;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  /* Put autocomplete above the input so it never collides with bottom controls */
+  .autocomplete {
+    bottom: auto;
+    top: calc(100% + 6px);
+    max-height: 200px;
+  }
+
+  /* One clean fixed control row at the bottom: time | give up | continent */
+  #top-right-controls {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+
+    top: auto;
+    z-index: 1500;
+
+    display: grid;
+    grid-template-columns: 1fr auto auto; /* time | give up | toggle */
+    align-items: center;
+    gap: 10px;
+
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.92);
+    border-radius: 14px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.18);
   }
 
   #timer {
-    text-align: left;
+    font-size: 1.05rem;
+    justify-self: start;
+  }
+
+  #give-up-btn {
+    justify-self: end;
+  }
+
+  /* Put the continent toggle into the same bottom bar (NOT floating) */
+  #toggle-continent-panel {
+    position: static;          /* overrides fixed */
+    justify-self: end;
+    margin: 0;
+
+    z-index: auto;
     white-space: nowrap;
+    box-shadow: none;          /* bar already has shadow */
+  }
+
+  /* Keep the continent panel from running under the bottom bar */
+  #continent-panel {
+    top: 72px;
+    right: 12px;
+    max-height: calc(100vh - 72px - 90px);
   }
 }
+
 
 
 
@@ -359,6 +458,14 @@ html, body {
   overflow-y: auto;
   padding: 4px;
   box-sizing: border-box;
+}
+
+/* Prevent text selection in the continent list (stops highlight\+reveal) */
+#continent-country-list,
+#continent-country-list .country-row {
+  user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
 }
 
 /* Each row in the country list */

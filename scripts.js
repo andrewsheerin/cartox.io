@@ -38,6 +38,14 @@ let continentCountryIndex = {};
 let canonicalToContinentInfo = {};
 
 /* =========================================================
+   AUTOCOMPLETE STATE
+========================================================= */
+
+let autocompleteEl = null;
+let allCountriesList = []; // [{ name, canonical }] sorted by display name
+let activeSuggestionIndex = -1;
+
+/* =========================================================
    CONTINENTS
 ========================================================= */
 
@@ -77,7 +85,6 @@ function isEndgameActive() {
     .getElementById("endgame-overlay")
     .classList.contains("hidden");
 }
-
 
 function formatTime(sec) {
   const m = Math.floor(sec / 60).toString().padStart(2, "0");
@@ -125,6 +132,66 @@ function updateAllContinentBoxes() {
 
 function continentOfFeature(feature) {
   return feature?.properties?.continent || "Unknown";
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function buildAllCountriesList() {
+  const arr = Object.entries(countriesByCanonical).map(([canonical, feature]) => ({
+    canonical,
+    name: feature.properties.country_name
+  }));
+  arr.sort((a, b) => a.name.localeCompare(b.name));
+  return arr;
+}
+
+/* =========================================================
+   AUTOCOMPLETE HELPERS
+========================================================= */
+
+function hideAutocomplete() {
+  if (!autocompleteEl) return;
+  autocompleteEl.classList.add("hidden");
+  autocompleteEl.innerHTML = "";
+  activeSuggestionIndex = -1;
+}
+
+function showAutocomplete(items) {
+  if (!autocompleteEl) return;
+
+  if (!items.length) {
+    hideAutocomplete();
+    return;
+  }
+
+  autocompleteEl.innerHTML = items
+    .map((item, idx) => {
+      const guessed = revealedCountries.has(item.canonical) ? " guessed" : "";
+      return `<div class="autocomplete-item${guessed}" data-idx="${idx}" data-canonical="${item.canonical}">${escapeHtml(item.name)}</div>`;
+    })
+    .join("");
+
+  autocompleteEl.classList.remove("hidden");
+  activeSuggestionIndex = -1;
+}
+
+function getSuggestions(prefix, limit = 20) {
+  const p = normalizeName(prefix);
+  if (!p) return [];
+
+  const out = [];
+  for (const item of allCountriesList) {
+    if (item.canonical.startsWith(p)) out.push(item);
+    if (out.length >= limit) break;
+  }
+  return out;
 }
 
 /* =========================================================
@@ -175,12 +242,10 @@ function setContinentPanelMode(mode) {
 }
 
 function refreshContinentGridTiles() {
+  // Reserved for future UI state; keep harmless.
   document.querySelectorAll(".continent-card").forEach(btn => {
     const cont = btn.dataset.continent;
-    const nameEl = btn.querySelector(".continent-name");
-    if (!nameEl) return;
-
-
+    void cont;
   });
 }
 
@@ -191,8 +256,8 @@ function renderContinentCountryList(continent) {
   title.textContent = continent;
 
   const items = continentCountryIndex[continent] || [];
-
   list.innerHTML = "";
+
   items.forEach(item => {
     const row = document.createElement("div");
     row.className = "country-row";
@@ -246,12 +311,65 @@ function enforceNarrowDefaults() {
 }
 
 /* =========================================================
+   GAME ACTIONS
+========================================================= */
+
+function revealCountryByFeature(feature) {
+  if (!feature) return;
+
+  const canonical = normalizeName(feature.properties.country_name);
+  if (!canonical) return;
+  if (revealedCountries.has(canonical)) return;
+
+  // Draw layer + label
+  const layer = createCountryLayer(feature, "#1E90FF").addTo(map);
+
+  const center =
+    Number.isFinite(feature.properties.label_x)
+      ? [feature.properties.label_y, feature.properties.label_x]
+      : layer.getBounds().getCenter();
+
+  const label = L.marker(center, {
+    icon: L.divIcon({
+      className: "country-label",
+      html: feature.properties.country_name
+    })
+  }).addTo(map);
+
+  const el = label.getElement();
+  if (el) el.style.fontSize = `${getLabelFontSize(feature, map.getZoom())}px`;
+
+  countryLayers[canonical] = { layer, label };
+  revealedCountries.add(canonical);
+
+  const cont = continentOfFeature(feature);
+  continentGuessed[cont] = (continentGuessed[cont] || 0) + 1;
+  updateContinentBox(cont);
+  updateProgress();
+  updateActiveContinentListRow(canonical);
+
+  // Slow zoom (your requested change)
+  map.fitBounds(layer.getBounds(), {
+    padding: [20, 20],
+    maxZoom: 5,
+    animate: true,
+    duration: 1.5
+  });
+
+  if (revealedCountries.size === totalCountries) {
+    setTimeout(endGame, 800);
+  }
+}
+
+/* =========================================================
    END GAME
 ========================================================= */
 
 function endGame() {
   clearInterval(timerInterval);
   if (input) input.disabled = true;
+
+  hideAutocomplete();
 
   const guessed =
     finalGuessedCount !== null ? finalGuessedCount : revealedCountries.size;
@@ -261,7 +379,6 @@ function endGame() {
   document.getElementById("final-missed").textContent = totalCountries - guessed;
   document.getElementById("final-accuracy").textContent =
     totalCountries ? Math.round((guessed / totalCountries) * 100) : 0;
-
 
   document.getElementById("endgame-overlay").classList.remove("hidden");
   document.getElementById("top-right-controls").classList.add("hidden");
@@ -312,6 +429,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /* ---------- UI ELEMENTS ---------- */
   input = document.getElementById("guess-input");
+  autocompleteEl = document.getElementById("autocomplete");
+
   const startBtn = document.getElementById("start-btn");
   const giveUpBtn = document.getElementById("give-up-btn");
   const playAgainInline = document.getElementById("play-again-inline");
@@ -372,6 +491,8 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       totalCountries = Object.keys(countriesByCanonical).length;
+      allCountriesList = buildAllCountriesList();
+
       dataLoaded = true;
       updateProgress();
       updateAllContinentBoxes();
@@ -433,7 +554,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (willShow) {
       panel.classList.remove("hidden");
       togglePanelBtn.textContent = "Hide Continent Panel";
-      // On narrow screens, start from grid.
       setContinentPanelMode("grid");
     } else {
       panel.classList.add("hidden");
@@ -441,38 +561,34 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-    /* ---------- RESIZE ---------- */
-    window.addEventListener("resize", () => {
+  /* ---------- RESIZE ---------- */
+  window.addEventListener("resize", () => {
+    if (isEndgameActive()) return;
 
-      //Do nothing if endgame overlay is active
-      if (isEndgameActive()) return;
+    if (isNarrowScreen() && gameStarted) {
+      enforceNarrowDefaults();
+      return;
+    }
 
-      if (isNarrowScreen() && gameStarted) {
-        enforceNarrowDefaults();
-        return;
-      }
+    // Desktop behavior
+    document.getElementById("toggle-continent-panel").classList.add("hidden");
 
-      // Desktop behavior
-      document.getElementById("toggle-continent-panel").classList.add("hidden");
+    if (document.getElementById("start-btn").classList.contains("hidden")) {
+      document.getElementById("continent-panel").classList.remove("hidden");
+    }
 
-      if (document.getElementById("start-btn").classList.contains("hidden")) {
-        document.getElementById("continent-panel").classList.remove("hidden");
-      }
+    if (continentPanelMode === "grid") {
+      document.getElementById("extent-map-container").classList.remove("hidden");
+      setTimeout(refreshExtentMap, 0);
+    } else {
+      document.getElementById("extent-map-container").classList.add("hidden");
+    }
 
-      if (continentPanelMode === "grid") {
-        document.getElementById("extent-map-container").classList.remove("hidden");
-        setTimeout(refreshExtentMap, 0);
-      } else {
-        document.getElementById("extent-map-container").classList.add("hidden");
-      }
-
-      refreshContinentGridTiles();
-    });
-
+    refreshContinentGridTiles();
+  });
 
   /* ---------- CONTINENT CARD CLICK ---------- */
   function handleContinentCardClick(continent) {
-    // Narrow screens: no extent map, ever.
     if (isNarrowScreen() && gameStarted) {
       activeContinent = continent;
       setContinentPanelMode("list");
@@ -480,10 +596,6 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // Desktop:
-    // - clicking a new continent shows list
-    // - clicking the active continent acts like "Show Extent Map":
-    //   switch back to grid mode (extent visible) and hide the list.
     if (continentPanelMode === "list" && continent === activeContinent) {
       setContinentPanelMode("grid");
       refreshContinentGridTiles();
@@ -511,59 +623,103 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!isNarrowScreen()) setTimeout(refreshExtentMap, 0);
   });
 
-  /* ---------- GUESS INPUT ---------- */
+  /* =========================================================
+     AUTOCOMPLETE EVENTS
+  ========================================================= */
+
+  document.addEventListener("click", (e) => {
+    if (!autocompleteEl || autocompleteEl.classList.contains("hidden")) return;
+
+    const inWrapper = e.target.closest("#input-wrapper");
+    if (!inWrapper) hideAutocomplete();
+  });
+
+  if (autocompleteEl) {
+    autocompleteEl.addEventListener("mousedown", (e) => {
+      const item = e.target.closest(".autocomplete-item");
+      if (!item) return;
+
+      const canonical = item.dataset.canonical;
+      const feature = countriesByCanonical[canonical];
+      if (!feature) return;
+
+      // Fill input visually, then reveal immediately.
+      input.value = feature.properties.country_name;
+      hideAutocomplete();
+
+      revealCountryByFeature(feature);
+      input.value = "";
+      input.focus();
+    });
+  }
+
+  input.addEventListener("keydown", (e) => {
+    if (!autocompleteEl || autocompleteEl.classList.contains("hidden")) return;
+
+    const items = Array.from(autocompleteEl.querySelectorAll(".autocomplete-item"));
+    if (!items.length) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      activeSuggestionIndex = Math.min(activeSuggestionIndex + 1, items.length - 1);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      activeSuggestionIndex = Math.max(activeSuggestionIndex - 1, 0);
+    } else if (e.key === "Enter") {
+      const active = items[activeSuggestionIndex];
+      if (active) {
+        e.preventDefault();
+        active.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+      }
+      return;
+    } else if (e.key === "Escape") {
+      hideAutocomplete();
+      return;
+    } else {
+      return;
+    }
+
+    items.forEach((el, idx) => el.classList.toggle("active", idx === activeSuggestionIndex));
+    items[activeSuggestionIndex]?.scrollIntoView({ block: "nearest" });
+  });
+
+  /* ---------- GUESS INPUT (+ AUTOCOMPLETE) ---------- */
   input.addEventListener("input", () => {
-    const guess = normalizeName(input.value);
+    const raw = input.value;
+    const guess = normalizeName(raw);
+
+    // Autocomplete suggestions (only while game is running and input enabled)
+    if (gameStarted && !input.disabled) {
+      const suggestions = getSuggestions(raw, 20);
+      showAutocomplete(suggestions);
+    } else {
+      hideAutocomplete();
+    }
+
+    // Only reveal on exact match (canonical or alias)
     if (!countryData[guess]) return;
 
     const feature = countryData[guess];
     const canonical = normalizeName(feature.properties.country_name);
-    if (revealedCountries.has(canonical)) return;
 
-    // Draw layer + label
-    const layer = createCountryLayer(feature, "#1E90FF").addTo(map);
-
-    const center =
-      Number.isFinite(feature.properties.label_x)
-        ? [feature.properties.label_y, feature.properties.label_x]
-        : layer.getBounds().getCenter();
-
-    const label = L.marker(center, {
-      icon: L.divIcon({
-        className: "country-label",
-        html: feature.properties.country_name
-      })
-    }).addTo(map);
-
-    const el = label.getElement();
-    if (el) {
-      el.style.fontSize = `${getLabelFontSize(feature, map.getZoom())}px`;
+    if (revealedCountries.has(canonical)) {
+      input.value = "";
+      hideAutocomplete();
+      return;
     }
 
-    countryLayers[canonical] = { layer, label };
-    revealedCountries.add(canonical);
-
-    const cont = continentOfFeature(feature);
-    continentGuessed[cont] = (continentGuessed[cont] || 0) + 1;
-    updateContinentBox(cont);
-    updateProgress();
-    updateActiveContinentListRow(canonical);
-
-    map.fitBounds(layer.getBounds(), { padding: [20, 20], maxZoom: 5 });
-
-    if (revealedCountries.size === totalCountries) {
-      setTimeout(endGame, 800);
-    }
-
+    hideAutocomplete();
+    revealCountryByFeature(feature);
     input.value = "";
   });
 
   /* ---------- GIVE UP ---------- */
   giveUpBtn.addEventListener("click", () => {
-
     gameStarted = false;
 
     finalGuessedCount = revealedCountries.size;
+
+    hideAutocomplete();
 
     document.getElementById("continent-panel").classList.add("hidden");
     document.getElementById("toggle-continent-panel").classList.add("hidden");
@@ -593,9 +749,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }).addTo(map);
 
       const el = label.getElement();
-      if (el) {
-        el.style.fontSize = `${getLabelFontSize(feature, map.getZoom())}px`;
-      }
+      if (el) el.style.fontSize = `${getLabelFontSize(feature, map.getZoom())}px`;
 
       countryLayers[canonical] = { layer, label };
     });
@@ -613,9 +767,10 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("close-endgame").addEventListener("click", () => {
     document.getElementById("endgame-overlay").classList.add("hidden");
 
-    // View-only state (no reset)
     document.getElementById("top-right-controls").classList.add("hidden");
     document.getElementById("continent-panel").classList.add("hidden");
+
+    hideAutocomplete();
 
     input.classList.add("hidden");
     input.disabled = true;
@@ -641,6 +796,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     playAgainInline.classList.add("hidden");
     startBtn.classList.remove("hidden");
+
+    hideAutocomplete();
 
     input.value = "";
     input.disabled = true;
