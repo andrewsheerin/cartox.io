@@ -1256,7 +1256,7 @@ body {
     width: 100%;
     min-width: 0;
     min-height: 0;
-    gap: 2px;
+    gap: 4px;
   }
 
   .topControlRow {
