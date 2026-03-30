@@ -80,12 +80,24 @@ npm run preview
 
 This repo includes a workflow at `.github/workflows/deploy-pages.yml` that deploys the app to GitHub Pages on every push to `main`.
 
+For this repository, the live GitHub Pages URL will be:
+
+`https://andrewsheerin.github.io/cartox.io/`
+
 ### One-time GitHub setup
 
 1. Open your repo on GitHub.
 2. Go to **Settings** -> **Pages**.
 3. Under **Build and deployment**, choose **Source: GitHub Actions**.
 4. Push to `main` (or run the workflow manually from **Actions**).
+
+### Push commands
+
+```bash
+git add .
+git commit -m "Deploy app to GitHub Pages"
+git push origin main
+```
 
 ### Notes
 
