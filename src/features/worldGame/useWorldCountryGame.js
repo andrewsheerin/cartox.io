@@ -69,7 +69,7 @@ export default function useWorldCountryGame() {
   useEffect(() => {
     let isAlive = true;
 
-    fetch('/countries_final.geojson')
+    fetch(`${import.meta.env.BASE_URL}countries_final.geojson`)
       .then((response) => {
         if (!response.ok) throw new Error(`GeoJSON fetch failed: ${response.status}`);
         return response.json();

@@ -76,6 +76,22 @@ npm run build
 npm run preview
 ```
 
+## Deploy on GitHub Pages
+
+This repo includes a workflow at `.github/workflows/deploy-pages.yml` that deploys the app to GitHub Pages on every push to `main`.
+
+### One-time GitHub setup
+
+1. Open your repo on GitHub.
+2. Go to **Settings** -> **Pages**.
+3. Under **Build and deployment**, choose **Source: GitHub Actions**.
+4. Push to `main` (or run the workflow manually from **Actions**).
+
+### Notes
+
+- The workflow builds with `VITE_BASE_PATH=/<repo-name>/` so assets and routes work on project pages.
+- `countries_final.geojson` is copied into `dist` during build by `scripts/copy-static.mjs`.
+
 ## Deploy on Render (Free Static Site)
 
 This repo includes a Render Blueprint file at `render.yaml` configured for a static deploy.

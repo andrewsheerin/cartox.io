@@ -33,6 +33,7 @@ html,
 body,
 #root {
   height: 100%;
+  width: 100%;
 }
 
 body {
@@ -1216,14 +1217,42 @@ body {
 
 }
 
-@media (max-width: 560px) {
+@media (max-width: 960px) {
   .pageShell,
   .gameShell {
     padding: 12px;
   }
 
   .gameShell {
-    padding-bottom: 92px;
+    height: 100dvh;
+    min-height: 100dvh;
+    max-width: 100vw;
+    overflow-x: clip;
+    padding-bottom: 112px;
+    gap: 6px;
+  }
+
+  body {
+    overflow-x: hidden;
+  }
+
+  .gameBoard {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .gameMainColumn {
+    min-height: 0;
+    gap: 4px;
+  }
+
+  .topControlRow {
+    gap: 0;
+  }
+
+  .controlPanel {
+    padding: 8px;
+    gap: 4px;
   }
 
   .landingGrid {
@@ -1246,9 +1275,10 @@ body {
   .liveStats {
     width: 100%;
     justify-content: flex-start;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     overflow: visible;
     position: relative;
+    min-width: 0;
   }
 
   .gameHeaderLeft,
@@ -1262,10 +1292,19 @@ body {
 
   .liveStatCount {
     margin-right: auto;
+    min-width: 72px;
+  }
+
+  .liveStatTimer {
+    min-width: 64px;
   }
 
   .mobileControlTrigger {
     display: inline-block;
+  }
+
+  .settingsColumn {
+    display: none;
   }
 
   .desktopContinentCards {
@@ -1343,8 +1382,8 @@ body {
   }
 
   .mapStage {
-    min-height: 54vh;
-    height: auto;
+    min-height: 0;
+    height: 100%;
   }
 
   .mobileContinentOverlay {
@@ -1364,6 +1403,17 @@ body {
   .guessPanel {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: stretch;
+    gap: 4px;
+  }
+
+  .guessPanel input {
+    padding: 7px 8px;
+    font-size: 0.88rem;
+  }
+
+  .guessPanel button[type='submit'] {
+    padding: 7px 10px;
+    font-size: 0.82rem;
   }
 
   .guessPanel button[type='submit'] {
@@ -1371,7 +1421,7 @@ body {
   }
 
   .sectionLabel {
-    font-size: 0.76rem;
+    display: none;
   }
 
   .settingsToggleButton,
@@ -1434,7 +1484,7 @@ body {
   .settingsRetroToggleThumb {
     width: 10px;
     height: 10px;
-    left: 2px;
+    left: 1px;
     border-radius: 1px;
     transform: translate(0, -50%);
   }
