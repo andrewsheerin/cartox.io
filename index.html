@@ -1,147 +1,18 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-  <title>Cartox</title>
-
-  <link rel="stylesheet" href="styles.css" />
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
-</head>
-
-<body>
-<header id="top-bar">
-  <div class="brand">
-    <span class="brand-name">Cartox<span class="brand-io">.io</span></span>
-    <span class="brand-subtitle">World Geography Games</span>
-  </div>
-</header>
-
-
-<div id="app">
-
-  <!-- TOP RIGHT CONTROLS -->
-  <div id="top-right-controls" class="hidden">
-    <div id="timer">00:00</div>
-    <button id="give-up-btn">Give Up</button>
-
-      <!-- NARROW SCREEN TOGGLE -->
-    <button id="toggle-continent-panel" class="hidden">
-      Show Continent Panel
-    </button>
-  </div>
-
-  <!-- GUESS BAR -->
-  <div id="guess-bar">
-    <div id="input-wrapper">
-      <button id="start-btn">Begin Game</button>
-      <input
-        id="guess-input"
-        class="hidden"
-        type="text"
-        placeholder="Guess a country…"
-        autocomplete="off"
-      />
-      <div id="autocomplete" class="autocomplete hidden"></div>
-      <button id="play-again-inline" class="hidden">Play Again</button>
-    </div>
-    <div id="progress-tracker">0 / 0</div>
-  </div>
-
-
-
-  <!-- CONTINENT PANEL -->
-  <div id="continent-panel" class="hidden">
-
-    <!-- CONTINENT LIST VIEW -->
-    <div id="continent-list-view" class="hidden">
-      <div class="continent-list-header">
-        <div id="continent-list-title" class="continent-list-title"></div>
-        <button id="continent-back-btn" type="button">Back</button>
-      </div>
-      <div id="continent-country-list" class="continent-country-list"></div>
-    </div>
-
-    <!-- EXTENT MAP (DESKTOP ONLY) -->
-    <div id="extent-map-container">
-      <div id="extent-map"></div>
-    </div>
-
-    <!-- CONTINENT GRID -->
-    <div class="continent-grid">
-      <button class="continent-card" data-continent="North America">
-        <span class="continent-name">North America</span>
-        <span id="na-progress" class="continent-progress">0 / 0</span>
-      </button>
-
-      <button class="continent-card" data-continent="South America">
-        <span class="continent-name">South America</span>
-        <span id="sa-progress" class="continent-progress">0 / 0</span>
-      </button>
-
-      <button class="continent-card" data-continent="Europe">
-        <span class="continent-name">Europe</span>
-        <span id="eu-progress" class="continent-progress">0 / 0</span>
-      </button>
-
-      <button class="continent-card" data-continent="Africa">
-        <span class="continent-name">Africa</span>
-        <span id="af-progress" class="continent-progress">0 / 0</span>
-      </button>
-
-      <button class="continent-card" data-continent="Asia">
-        <span class="continent-name">Asia</span>
-        <span id="as-progress" class="continent-progress">0 / 0</span>
-      </button>
-
-      <button class="continent-card" data-continent="Oceania">
-        <span class="continent-name">Oceania</span>
-        <span id="oc-progress" class="continent-progress">0 / 0</span>
-      </button>
-    </div>
-  </div>
-
-  <!-- MAP -->
-  <div id="map"></div>
-</div>
-
-<!-- END GAME MODAL -->
-<div id="endgame-overlay" class="hidden">
-  <div id="endgame-modal">
-    <button id="close-endgame">&times;</button>
-    <h2>Game Complete</h2>
-
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-label">Time</div>
-        <div id="final-time" class="stat-value"></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Guessed</div>
-        <div id="final-guessed" class="stat-value"></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Missed</div>
-        <div id="final-missed" class="stat-value"></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Accuracy</div>
-        <div class="stat-value">
-          <span id="final-accuracy"></span>%
-        </div>
-      </div>
-
-    </div>
-
-    <div id="continent-stats"></div>
-    <button id="play-again-btn">Play Again</button>
-  </div>
-</div>
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="scripts.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Cartox</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Oxanium:wght@500;600;700&family=Press+Start+2P&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>
